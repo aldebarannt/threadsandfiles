@@ -17,30 +17,29 @@ public class FileVisitorMain {
 		final File root = new File("d:\\dev");
 		
 		final ExecutorService executorService = Executors.newFixedThreadPool(100);
+		final CompletionService<Long> completionService = new ExecutorCompletionService<Long>(executorService);
 		
-		final CompletionService<Long> taskCompletionService = new ExecutorCompletionService<Long>(executorService);
-		
-		final Files files = new Files();
+		final FileService fileService = new FileService();
 		
 		try {
 		
-			files.accept(root, new IFileVisitor() {
+			fileService.accept(root, new IFileVisitor() {
 				@Override
 				public void visit(File file) {
-					taskCompletionService.submit(new CheckFileSize(file));
+					completionService.submit(new CheckFileSize(file));
 				}
 			});
 
 			Integer reads = 0;
 			Future<Long> future;
-			Long count = new Long(0);
-			while ((future = taskCompletionService.poll(5, TimeUnit.MILLISECONDS)) != null) {
+			Long directorySize = new Long(0);
+			while ((future = completionService.poll(5, TimeUnit.MILLISECONDS)) != null) {
 				reads++;
-				count += future.get();
+				directorySize += future.get();
 			}
 			
-			System.out.println("count: " + count + " in " + (System.nanoTime() - start)/1000 + " miliseconds");
-			System.out.println("iterations: " + files.getVisits());
+			System.out.println("count: " + directorySize + " in " + (System.nanoTime() - start)/1000 + " miliseconds");
+			System.out.println("iterations: " + fileService.getVisits());
 			System.out.println("reads: " + reads);
 
 		} catch (InterruptedException e) {
